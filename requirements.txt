@@ -9,3 +9,5 @@ cdsapi
 requests
 python-dotenv
 jupyter
+xarray
+netCDF4
