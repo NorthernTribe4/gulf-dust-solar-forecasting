@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables / secrets
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Raw data (never commit contents, but keep the folder tracked)
+data/raw/*
+!data/raw/.gitkeep
+
+# Large data files anywhere under data/ (keep .gitkeep tracked)
+data/**/*.csv
+data/**/*.h5
+data/**/*.nc
