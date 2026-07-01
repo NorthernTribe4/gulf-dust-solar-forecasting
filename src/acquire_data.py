@@ -157,6 +157,16 @@ def choose_dataset(query: dict) -> tuple[dict, int, int, str]:
 def nsrdb_download(api_key: str, year: int, interval: int, link: str | None) -> pd.DataFrame:
     section("STEP 2 - NSRDB DOWNLOAD")
 
+    raw_path = RAW / f"nsrdb_doha_{year}_{interval}min.csv"
+
+    # Reuse the cached raw file if it survived from a previous session. Avoids a
+    # re-download and any dependency on the NSRDB availability/download API.
+    if raw_path.exists() and raw_path.stat().st_size > 0:
+        raw_text = raw_path.read_text(encoding="utf-8")
+        log(f"Cached NSRDB file present, skipping download -> {raw_path} "
+            f"({len(raw_text)} bytes)")
+        return _parse_nsrdb_csv(raw_text, year, interval)
+
     # Build the download URL. Prefer the link template the query handed back so
     # we stay on whatever endpoint/domain the API itself advertises.
     if link:
@@ -197,10 +207,14 @@ def nsrdb_download(api_key: str, year: int, interval: int, link: str | None) -> 
         resp.raise_for_status()
 
     raw_text = resp.text
-    raw_path = RAW / f"nsrdb_doha_{year}_{interval}min.csv"
     raw_path.write_text(raw_text, encoding="utf-8")
     log(f"Saved raw NSRDB -> {raw_path} ({len(raw_text)} bytes)")
 
+    return _parse_nsrdb_csv(raw_text, year, interval)
+
+
+def _parse_nsrdb_csv(raw_text: str, year: int, interval: int) -> pd.DataFrame:
+    """Parse an NSRDB PSM-style CSV (whether freshly downloaded or cached)."""
     # NSRDB CSV: row 0 = metadata field names, row 1 = metadata values,
     # row 2 = data column header, rows 3+ = data.
     meta = pd.read_csv(io.StringIO(raw_text), nrows=1)
@@ -473,10 +487,21 @@ def main() -> int:
     section(f"DATA GATE - {SITE_NAME}  (lat={LAT}, lon={LON})")
     log(f"NSRDB WKT: {WKT}")
 
-    query = nsrdb_query(api_key)
-    output, year, interval, link = choose_dataset(query)
-
-    nsrdb = nsrdb_download(api_key, year, interval, link)
+    # Reuse a cached NSRDB raw file if one survived a previous session; this
+    # lets us skip the availability query + download entirely.
+    cached = sorted(RAW.glob("nsrdb_doha_*_*min.csv"))
+    if cached:
+        stem = cached[0].stem  # e.g. nsrdb_doha_2022_15min
+        parts = stem.split("_")
+        year = int(parts[2])
+        interval = int(parts[3].replace("min", ""))
+        section("STEP 1 - NSRDB (cached file found, availability query skipped)")
+        log(f"Cached NSRDB file: {cached[0].name}  ->  year={year}, interval={interval} min")
+        nsrdb = nsrdb_download(api_key, year, interval, None)
+    else:
+        query = nsrdb_query(api_key)
+        output, year, interval, link = choose_dataset(query)
+        nsrdb = nsrdb_download(api_key, year, interval, link)
 
     nc_path = cams_download(year)
     cams = load_cams(nc_path)

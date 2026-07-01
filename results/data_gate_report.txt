@@ -1,0 +1,85 @@
+
+======================================================================
+DATA GATE - Doha, Qatar  (lat=25.2854, lon=51.531)
+======================================================================
+NSRDB WKT: POINT(51.531 25.2854)
+
+======================================================================
+STEP 1 - NSRDB (cached file found, availability query skipped)
+======================================================================
+Cached NSRDB file: nsrdb_doha_2022_15min.csv  ->  year=2022, interval=15 min
+
+======================================================================
+STEP 2 - NSRDB DOWNLOAD
+======================================================================
+Cached NSRDB file present, skipping download -> C:\Users\aarus\Desktop\Coding projects\gulf-dust-solar-forecasting\data\raw\nsrdb_doha_2022_15min.csv (1717711 bytes)
+NSRDB metadata header:
+    Source  Location ID City State Country  Latitude  Longitude  Time Zone  Elevation  Local Time Zone Clearsky DHI Units Clearsky DNI Units Clearsky GHI Units Dew Point Units DHI Units DNI Units GHI Units Solar Zenith Angle Units Temperature Units Pressure Units Relative Humidity Units Precipitable Water Units Wind Direction Units Wind Speed Units  Cloud Type -15 Cloud Type 0   Cloud Type 1 Cloud Type 2 Cloud Type 3       Cloud Type 4 Cloud Type 5 Cloud Type 6 Cloud Type 7 Cloud Type 8 Cloud Type 9 Cloud Type 10 Cloud Type 11 Cloud Type 12  Fill Flag 0   Fill Flag 1    Fill Flag 2      Fill Flag 3              Fill Flag 4        Fill Flag 5  Surface Albedo Units Version
+     NSRDB      2534838    -     -       -     25.29      51.54          0         10                3               w/m2               w/m2               w/m2               c      w/m2      w/m2      w/m2                   Degree                 c           mbar                       %                       cm              Degrees              m/s             NaN        Clear Probably Clear          Fog        Water Super-Cooled Water        Mixed   Opaque Ice       Cirrus  Overlapping Overshooting       Unknown          Dust         Smoke          NaN Missing Image Low Irradiance Exceeds Clearsky Missing CLoud Properties Rayleigh Violation                   NaN   4.0.0
+Parsed NSRDB rows: 35040  columns: ['Year', 'Month', 'Day', 'Hour', 'Minute', 'GHI', 'DNI', 'DHI', 'Solar Zenith Angle', 'Temperature', 'Aerosol Optical Depth']
+Saved clean NSRDB -> C:\Users\aarus\Desktop\Coding projects\gulf-dust-solar-forecasting\data\processed\nsrdb_doha_2022_clean.csv
+
+======================================================================
+STEP 3 - CAMS EAC4 DOWNLOAD
+======================================================================
+dataset : cams-global-reanalysis-eac4
+variables: ['total_aerosol_optical_depth_550nm', 'dust_aerosol_optical_depth_550nm']
+area [N,W,S,E]: [26.0, 50.5, 24.5, 52.5]
+date    : 2022-01-01/2022-12-31, 3-hourly
+Saved raw CAMS -> C:\Users\aarus\Desktop\Coding projects\gulf-dust-solar-forecasting\data\raw\cams_eac4_doha_2022.nc (166905 bytes)
+CAMS dataset variables: aod550, duaod550
+CAMS coords: valid_time, latitude, longitude
+Nearest CAMS cell to Doha: lat=25.500 lon=51.750
+CAMS total AOD var: aod550; dust AOD var: duaod550
+
+======================================================================
+STEP 4 - ALIGN AND MERGE
+======================================================================
+NSRDB index tz: UTC; CAMS index tz: UTC
+NSRDB native step: 15 min; CAMS block = 12 NSRDB steps
+Alignment method: reindex CAMS (3-hourly) onto NSRDB (15-min) index, forward-fill within each 3-hour block (ffill limit=11 steps).
+Merged rows: 35040  columns: ['ghi', 'dni', 'dhi', 'solar_zenith_angle', 'air_temperature', 'nsrdb_aod', 'cams_total_aod550', 'cams_dust_aod550']
+Saved merged -> C:\Users\aarus\Desktop\Coding projects\gulf-dust-solar-forecasting\data\processed\doha_merged.csv
+
+======================================================================
+STEP 5 - VERIFICATION REPORT
+======================================================================
+[Date range / row count / native resolution]
+  NSRDB : 2022-01-01 00:00:00+00:00 -> 2022-12-31 23:45:00+00:00 | rows=35040 | native=15 min
+  CAMS  : 2022-01-01 00:00:00+00:00 -> 2022-12-31 21:00:00+00:00 | rows=2920 | native=180 min
+  MERGE : 2022-01-01 00:00:00+00:00 -> 2022-12-31 23:45:00+00:00 | rows=35040 | grid=15 min (NSRDB native)
+
+[Percent missing per key column - merged table]
+  ghi                   :   0.00%
+  dni                   :   0.00%
+  dhi                   :   0.00%
+  solar_zenith_angle    :   0.00%
+  air_temperature       :   0.00%
+  nsrdb_aod             :   0.00%
+  cams_total_aod550     :   0.00%
+  cams_dust_aod550      :   0.00%
+
+[GHI]
+  mean=243.74  min=0.00  max=1031.00
+  daytime rows (GHI>0): 17385 of 35040 (49.6%)
+
+[Dust AOD 550nm]
+  mean=0.1990  median=0.1388  max=1.1432
+  high-dust threshold (90th pct): 0.4413
+  high-dust timesteps: 3504 (10.0% of all rows)
+  high-dust AND daytime (GHI>0): 1894 (54.1% of high-dust rows)
+
+[Diagnostic plots]
+  saved C:\Users\aarus\Desktop\Coding projects\gulf-dust-solar-forecasting\figures\ghi_timeseries.png
+  saved C:\Users\aarus\Desktop\Coding projects\gulf-dust-solar-forecasting\figures\dust_aod_timeseries.png
+  saved C:\Users\aarus\Desktop\Coding projects\gulf-dust-solar-forecasting\figures\ghi_vs_dust_scatter.png
+
+======================================================================
+SAVED FILES
+======================================================================
+  raw NSRDB    : data/raw/nsrdb_doha_2022_15min.csv
+  clean NSRDB  : data/processed/nsrdb_doha_2022_clean.csv
+  raw CAMS     : data\raw\cams_eac4_doha_2022.nc
+  merged       : data/processed/doha_merged.csv
+  report       : results/data_gate_report.txt
+  figures      : figures/ghi_timeseries.png, dust_aod_timeseries.png, ghi_vs_dust_scatter.png

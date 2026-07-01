@@ -12,6 +12,9 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 
+# Transient run log from acquire_data.py (report is the tracked artifact)
+results/acquire_run.log
+
 # Raw data (never commit contents, but keep the folder tracked)
 data/raw/*
 !data/raw/.gitkeep
