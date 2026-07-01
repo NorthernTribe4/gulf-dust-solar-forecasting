@@ -1,8 +1,28 @@
-numpy
+# Windows Smart App Control (Application Control) on this machine BLOCKS the
+# native DLLs shipped in RECENT scikit-learn / lightgbm / xgboost wheels
+# ("Application Control policy has blocked this file"). The older, reputable
+# wheels pinned below import cleanly and pass App Control (verified 2026-07-01).
+#
+# scikit-learn 1.3.2 requires numpy < 2, so numpy is pinned to 1.26.4. That
+# version also satisfies the data deps (pandas 2.2.3, xarray, netCDF4, scipy).
+#
+# Install note: do NOT `pip install -r requirements.txt` wholesale on this
+# machine -- `jupyter` creates deeply-nested paths that exceed the Windows
+# long-path limit and abort the transaction. Install the data deps and the
+# modelling deps as targeted groups instead. The exact modelling install used:
+#   .venv\Scripts\python.exe -m pip install \
+#       scikit-learn==1.3.2 lightgbm==4.1.0 xgboost==2.0.3
+# Verify:
+#   .venv\Scripts\python.exe -c "import sklearn, lightgbm, xgboost; print('OK')"
+
+numpy==1.26.4
 pandas==2.2.3
-scikit-learn
-lightgbm
-xgboost
+
+# Phase-3 modelling (pinned to pass Smart App Control -- see note above)
+scikit-learn==1.3.2
+lightgbm==4.1.0
+xgboost==2.0.3
+
 matplotlib
 pvlib
 cdsapi
