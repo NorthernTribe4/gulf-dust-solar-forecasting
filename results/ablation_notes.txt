@@ -1,40 +1,39 @@
-DUST-AWARE ABLATION - NOTES AND HONEST INTERPRETATION
-=====================================================
-Run: src/train_dust_aware.py   Target: GHI 1 h ahead, daytime Oct-Dec 2022 hold-out.
-Controlled comparison: baseline vs dust-aware differ ONLY by appended dust
-features; baseline reproduces src/train_baseline.py bit-for-bit (LightGBM
-all-sky RMSE 42.30, XGBoost 42.19).
+Dust-aware ablation: notes and interpretation
+=============================================
+Run: src/train_dust_aware.py. Target is GHI 1 h ahead, evaluated on the daytime
+Oct-Dec 2022 hold-out. Baseline and dust-aware differ only by the appended dust
+features, and the baseline reproduces src/train_baseline.py to the digit
+(LightGBM all-sky RMSE 42.30, XGBoost 42.19).
 
-HEADLINE RESULT: NULL / NO RELIABLE IMPROVEMENT FROM DUST.
----------------------------------------------------------
-RMSE improvement (dust-aware minus baseline; + = dust helps):
-  LightGBM  all-sky : -1.85 W/m^2  (-4.4%)   -> dust HURTS slightly
-  LightGBM  high-dust: -1.44 W/m^2 (-2.4%)   -> dust HURTS slightly
-  XGBoost   all-sky : +0.69 W/m^2  (+1.6%)   -> negligible help
-  XGBoost   high-dust: -0.07 W/m^2 (-0.1%)   -> flat
-All effects are ~1-2 W/m^2 on an RMSE of ~42-60 W/m^2, i.e. run-to-run noise.
-The hypothesis "improvement is larger on the high-dust slice" is NOT supported.
-Dust features rank low by gain (LightGBM #10/#11/#14, XGBoost #16/#17/#22 of 29);
-clear-sky GHI, solar geometry and recent clear-sky-index dominate.
+Result: no reliable improvement from dust. RMSE change (dust-aware minus
+baseline, positive means dust helps):
+  LightGBM  all-sky  : -1.85 W/m^2  (-4.4%), dust slightly worse
+  LightGBM  high-dust: -1.44 W/m^2  (-2.4%), dust slightly worse
+  XGBoost   all-sky  : +0.69 W/m^2  (+1.6%), negligible
+  XGBoost   high-dust: -0.07 W/m^2  (-0.1%), flat
+Every effect is about 1-2 W/m^2 on an RMSE of 42-60, which is run-to-run noise.
+The idea that the improvement should be larger on the high-dust slice does not
+hold up. The dust features rank low by gain (LightGBM #10/#11/#14, XGBoost
+#16/#17/#22 out of 29); clear-sky GHI, solar geometry and the recent clear-sky
+index carry the model.
 
-WHY (the important methodological caveat):
-------------------------------------------
-The chronological split (train Jan-Sep, test Oct-Dec) places the ENTIRE Gulf
-dust season in the training set and leaves a low-dust winter for testing:
-  ANNUAL dust AOD    : mean 0.199, p90 0.4413, max 1.143
-  TRAIN (Jan-Sep)    : mean 0.240, p90 0.4775, max 1.143
-  TEST  (Oct-Dec)    : mean 0.077, p90 0.1333, max 0.294   <-- barely any dust
-  Monthly dust mean  : Mar 0.26, Apr 0.29, May 0.41, Jul 0.40  vs  Oct 0.08,
-                       Nov 0.09, Dec 0.06
-  Annual high-dust (>0.4413) timesteps = 3504 total, of which 0 fall in Oct-Dec.
-So the "high-dust" test slice (dust>0.1333, n=394) is only the dustiest 10% of a
-clean winter (max 0.294). There are essentially NO real dust storms in the
-hold-out for the dust feature to help with -- hence no measurable benefit.
+Why this happens is mostly about the split. Training on Jan-Sep and testing on
+Oct-Dec puts the whole Gulf dust season in the training set and leaves a low-dust
+winter to test on:
+  Annual dust AOD : mean 0.199, p90 0.4413, max 1.143
+  Train (Jan-Sep) : mean 0.240, p90 0.4775, max 1.143
+  Test  (Oct-Dec) : mean 0.077, p90 0.1333, max 0.294   (barely any dust)
+  Monthly mean    : Mar 0.26, Apr 0.29, May 0.41, Jul 0.40 against Oct 0.08,
+                    Nov 0.09, Dec 0.06
+  Of the 3504 annual high-dust (>0.4413) timesteps, 0 land in Oct-Dec.
+So the high-dust test slice (dust > 0.1333, n=394) is just the dustiest tenth of
+a clean winter, topping out at 0.294. There are no real dust storms in the
+hold-out for the feature to help with, so there is nothing to measure.
 
-CONCLUSION: On this Jan-Sep/Oct-Dec split, adding CAMS dust AOD does not improve
-1 h-ahead GHI forecasts, because the hold-out period contains no significant dust
-events. This is a limitation of the evaluation window, not evidence that dust is
-irrelevant to GHI. A fair test of the dust hypothesis needs a hold-out that
-actually contains dust storms (e.g. test on a spring/summer month, or seasonal
-cross-validation). That change is deliberately NOT made here (the split is fixed
-for the controlled baseline comparison); it is the recommended next step.
+The takeaway: on this Jan-Sep/Oct-Dec split, adding CAMS dust AOD does not improve
+1 h-ahead GHI, because the test period has no significant dust events. That is a
+limitation of the evaluation window, not evidence that dust does not matter for
+GHI. A fair test needs a hold-out that actually contains dust storms, for example
+a spring or summer test month or seasonal cross-validation. I left the split fixed
+here on purpose so the baseline comparison stays controlled; changing it is the
+next step.

@@ -1,51 +1,51 @@
-MONTH-BLOCKED CV ABLATION - NOTES AND HONEST INTERPRETATION
-===========================================================
+Month-blocked CV ablation: notes and interpretation
+===================================================
 Run: src/train_dust_aware_cv.py. Leave-one-month-out CV (12 folds), daytime only,
-1 h-ahead GHI. Features/models/seeds reused verbatim (features.py, modeling.py);
-ONLY the evaluation protocol changed vs step 2.
+GHI 1 h ahead. Features, models and seeds are reused unchanged from features.py
+and modeling.py; only the evaluation protocol changed from the step-2 single
+split.
 
-DESIGN FIX WORKED: real dust events are now in held-out data.
-  Pooled daytime test rows: 17,618 (each month held out once).
-  Pooled high-dust daytime rows (dust AOD(t+1h) > 0.4413): 1,933 (11.0%),
-  vs ~0 in the step-2 Oct-Dec-only test. So the dust feature is now genuinely
-  tested against real dust storms (Mar-Aug).
+The design change did what it was meant to: real dust events are now in the
+held-out data. Pooling the 12 folds gives 17,618 daytime test rows (each month
+held out once), of which 1,933 (11.0%) exceed the annual high-dust threshold
+(dust AOD at t+1h > 0.4413). The step-2 Oct-Dec test had essentially none of
+those, so the dust feature is finally being tested against real dust storms
+(Mar-Aug).
 
-HEADLINE RESULT: dust STILL does not help; it slightly hurts.
-  Pooled all-sky   RMSE improvement (dust-aware - baseline):
-    LightGBM -1.44% | XGBoost -1.74%
-  Pooled TRUE high-dust slice (>0.4413) RMSE improvement:
-    LightGBM -2.06% | XGBoost -4.24%
-  Models still beat smart persistence (skill ~0.22 all-sky) -- but the dust
-  feature adds nothing on top, and is net negative on dust events.
+The result is the same: dust still does not help, and slightly hurts. Pooled
+all-sky RMSE improvement (dust-aware minus baseline) is -1.44% for LightGBM and
+-1.74% for XGBoost. On the true high-dust slice (>0.4413) it is -2.06% and -4.24%.
+Both models still beat smart persistence (skill around 0.22 all-sky), but the dust
+feature adds nothing on top of that and is net negative on dust events.
 
-PER-MONTH (LightGBM / XGBoost RMSE improvement %):
-  Jan -4.8 /-0.4 | Feb +3.5/+3.1 | Mar +2.5/-2.3 | Apr +1.0/-0.4 |
-  May -19.3/-26.9 (max dust 1.14, 661 high-dust rows)  <-- dustiest month, WORST
-  Jun +25.7/+10.7 (moderate dust)  <-- the only clear gain
-  Jul -0.1/+0.6 (dusty, 627 high-dust) | Aug -0.5/+1.5 |
-  Sep..Dec: small mixed/negative (little dust).
-  => No consistent dust-driven improvement. The single dustiest month (May)
-  shows the LARGEST degradation; the one clear gain (June) is not the dustiest.
+Per-month RMSE improvement (LightGBM / XGBoost):
+  Jan -4.8 / -0.4   Feb +3.5 / +3.1   Mar +2.5 / -2.3   Apr +1.0 / -0.4
+  May -19.3 / -26.9  (max dust 1.14, 661 high-dust rows; the dustiest month and
+                      also the worst for dust)
+  Jun +25.7 / +10.7  (moderate dust; the only clear gain)
+  Jul -0.1 / +0.6   Aug -0.5 / +1.5
+  Sep-Dec: small, mixed, mostly slightly negative (little dust).
+There is no consistent dust-driven improvement. The dustiest month shows the
+largest degradation, and the one clear gain (June) is not a particularly dusty
+month.
 
-LIKELY MECHANISM (interpretation, not a tuning excuse):
-  The dust-blind baseline already uses the observed clear-sky index
-  kt = GHI/GHI_cs at 15-min lags (kt_lag0..4, kt_roll4_mean). kt is a direct
-  MEASUREMENT of total sky attenuation -- clouds AND dust -- as actually
-  observed at issue time. CAMS dust AOD is a coarser (3-hourly, forward-filled)
-  MODEL estimate of just one attenuation component, and is largely redundant
-  with kt. Adding it mostly injects noise the gradient-boosted trees overfit,
-  which is worst during the extreme May dust episode. Dust feature importance
-  was low in step 2 (gain ranks #10-#17 of 29), consistent with this.
+The likely reason is redundancy, not a tuning problem. The dust-blind baseline
+already uses the observed clear-sky index kt = GHI/GHI_cs at 15-minute lags
+(kt_lag0 through kt_lag4, kt_roll4_mean). That index is a direct measurement of
+total sky attenuation, clouds and dust together, as seen at issue time. CAMS dust
+AOD is a coarser 3-hourly, forward-filled model estimate of just one part of that
+attenuation, so it largely repeats what kt already carries and mostly adds noise
+the trees overfit. That is worst during the extreme May episode. Dust feature
+importance was low in step 2 as well (gain ranks #10 to #17 of 29), which fits.
 
-CONCLUSION: The step-2 null was NOT merely an artifact of a dust-free test
-window. Under a fair month-blocked CV that DOES contain real dust storms, adding
-time-t CAMS dust AOD provides no short-horizon (1 h) GHI forecast skill and is
-mildly harmful, most notably on the largest dust event. This is a robust
-null/negative finding for this feature set and horizon.
+So the step-2 null was not just an artifact of a dust-free test window. Under a
+fair month-blocked CV that does contain real dust storms, time-t CAMS dust AOD
+gives no 1 h GHI forecast skill and is mildly harmful, most of all on the biggest
+dust event. For this feature set and horizon, that is a solid negative result.
 
-NOT TESTED HERE (candidate next steps, deliberately not run):
-  * Longer horizons (3-6 h) where observed-kt persistence decays and a dust
-    forecast might carry more information.
-  * A setting WITHOUT observed kt (pure NWP/clear-sky inputs), where dust AOD is
-    not redundant with a measured attenuation index.
-  * Finer-resolution or forecast dust products instead of 3-hourly reanalysis.
+Things not tested here, left for later:
+  - Longer horizons (3-6 h), where observed-kt persistence weakens and a dust
+    signal might carry more information.
+  - A setting without observed kt (pure NWP or clear-sky inputs), where dust AOD
+    would not be redundant with a measured attenuation index.
+  - Finer-resolution or forecast dust products instead of 3-hourly reanalysis.

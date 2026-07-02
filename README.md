@@ -1,52 +1,49 @@
-# Gulf Dust–Solar Forecasting
+# Gulf Dust and Solar Forecasting
 
-Research code for a paper targeted at **BDA 2026** (Springer LNCS proceedings).
+Research code for a paper targeted at BDA 2026 (Springer LNCS proceedings).
 
-## Research Question
+## Research question
 
 > Does an explicit dust/aerosol-attenuation feature improve short-horizon solar
 > irradiance forecasting in arid Gulf conditions, where standard forecasts
 > underperform under high atmospheric dust loading?
 
-Arid Gulf sites experience frequent, high-magnitude dust events that scatter and
-absorb incoming shortwave radiation. Standard irradiance forecasts that do not
-account for aerosol loading tend to degrade sharply during these events. This
-project tests whether adding an explicit aerosol-attenuation feature (derived
-from aerosol optical depth) to short-horizon forecasting models measurably
-improves accuracy relative to baselines without such a feature.
+Gulf sites get frequent, strong dust events that scatter and absorb incoming
+shortwave radiation. Irradiance forecasts that ignore aerosol loading tend to
+degrade during those events. This project tests whether adding a dust aerosol
+optical depth feature to short-horizon models measurably improves accuracy over
+baselines that do not use it.
+
+The short answer, on 2022 data for Doha, is mostly no. See "Results so far" below.
 
 ## Datasets
 
-> **Note:** No data is downloaded in this scaffolding stage. The entries below
-> document the planned public sources and how they will be accessed.
+### NSRDB (solar irradiance: target and predictors)
+NREL's National Solar Radiation Database supplies GHI, DNI and DHI (global,
+direct and diffuse horizontal irradiance) plus solar geometry and temperature for
+the Doha cell at 15-minute resolution. Access is through the NREL developer API,
+which needs a free API key ([request one here](https://developer.nrel.gov/signup/))
+stored as `NREL_API_KEY` in a local `.env` file.
 
-### NSRDB — solar irradiance (target + predictors)
-- **Source:** NREL National Solar Radiation Database.
-- **Variables:** GHI, DNI, DHI (global/direct/diffuse horizontal irradiance) for
-  Gulf sites.
-- **Access:** NREL developer API. Requires a free API key
-  ([request one here](https://developer.nrel.gov/signup/)), stored as
-  `NREL_API_KEY` in a local `.env` file.
+### CAMS (aerosol optical depth: the candidate feature)
+The Copernicus Atmosphere Monitoring Service EAC4 reanalysis supplies total and
+dust aerosol optical depth at 550 nm, 3-hourly, over a small box around Doha.
+Access is through the Atmosphere Data Store with the `cdsapi` client, which needs
+free registration at [ADS](https://ads.atmosphere.copernicus.eu/) and a
+`~/.cdsapirc` credentials file (see Setup).
 
-### CAMS — aerosol optical depth (the candidate feature)
-- **Source:** Copernicus Atmosphere Monitoring Service.
-- **Variable:** aerosol optical depth (AOD) at 550 nm.
-- **Access:** Atmosphere Data Store (ADS) via the `cdsapi` Python client.
-  Requires free registration ([ADS](https://ads.atmosphere.copernicus.eu/)) and a
-  `~/.cdsapirc` credentials file (see Setup below).
-
-## Folder Structure
+## Folder structure
 
 ```
 gulf-dust-solar-forecasting/
 ├── data/
 │   ├── raw/            # Raw downloaded data (git-ignored, never committed)
 │   └── processed/      # Cleaned, merged, feature-engineered datasets
-├── src/                # Source code (data ingestion, features, models, eval)
-├── notebooks/          # Exploratory analysis and experiment notebooks
-├── results/            # Metrics, model outputs, experiment artifacts
-├── figures/            # Plots and figures for the paper
-├── paper/              # LaTeX manuscript (LNCS) and paper assets
+├── src/                # Data acquisition, features, models, evaluation
+├── notebooks/          # Exploratory analysis
+├── results/            # Metrics tables and run notes
+├── figures/            # Plots for the paper
+├── paper/              # LaTeX manuscript (LNCS) and assets
 ├── requirements.txt
 ├── .env.example        # Template for NREL_API_KEY
 ├── .gitignore
@@ -55,7 +52,7 @@ gulf-dust-solar-forecasting/
 
 ## Setup (Windows / PowerShell)
 
-Exact commands to recreate the environment from a fresh clone:
+Commands to recreate the environment from a fresh clone:
 
 ```powershell
 # 1. Clone and enter the project
@@ -75,19 +72,54 @@ Copy-Item .env.example .env
 # Then edit .env and set NREL_API_KEY to your key.
 
 # 5. Configure CAMS / cdsapi credentials
-# Create %USERPROFILE%\.cdsapirc with the following two lines:
+# Create %USERPROFILE%\.cdsapirc with these two lines:
 #   url: https://ads.atmosphere.copernicus.eu/api
 #   key: <your-ads-api-key>
 ```
 
-> If `Activate.ps1` is blocked, allow scripts for the current session:
-> `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned`
+If `Activate.ps1` is blocked, allow scripts for the current session with
+`Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned`.
+
+Note on this machine: Windows Smart App Control blocks the native DLLs in recent
+scikit-learn/lightgbm/xgboost wheels, and `jupyter` trips the Windows long-path
+limit during install. `requirements.txt` pins versions that work around the first
+problem; install without `jupyter` to avoid the second. The header of
+`requirements.txt` has the details.
+
+## Pipeline
+
+Run these from the repo root with the virtualenv active.
+
+1. `python src/acquire_data.py` downloads and merges NSRDB and CAMS, then writes a
+   verification report and diagnostic figures (the data gate).
+2. `python src/train_baseline.py` trains the dust-blind 1-hour-ahead GHI baseline.
+3. `python src/train_dust_aware.py` adds the dust features and runs the first
+   ablation on a single Jan-Sep / Oct-Dec split.
+4. `python src/train_dust_aware_cv.py` reruns the ablation under month-blocked
+   cross-validation so dust events actually appear in held-out data.
+5. `python src/horizon_sweep.py` repeats the CV ablation at 1, 3 and 6 hours.
+
+`src/features.py` holds the feature construction and split logic; `src/modeling.py`
+holds the shared model definitions and metrics. Both are reused unchanged across
+steps so the baseline-vs-dust comparison stays controlled.
+
+## Results so far
+
+Target is GHI one hour ahead (and 3 and 6 hours in the sweep), evaluated on
+daytime timesteps against a smart-persistence reference.
+
+- The dust-blind baseline beats smart persistence (skill about 0.25 at 1 hour).
+- Adding CAMS dust AOD does not help at 1 hour. Under month-blocked CV, which does
+  put real dust storms in the test folds, it is still slightly negative overall
+  and on the true high-dust slice.
+- Across horizons the dust feature helps a little on the all-sky set at 6 hours
+  (XGBoost about +7%), but not on the high-dust slice at any horizon. So it acts
+  more like a general atmospheric-state signal than a dust-event predictor.
+
+The `results/*_notes.txt` files record the numbers and the reasoning behind each
+of these conclusions.
 
 ## Dependencies
 
-`numpy`, `pandas`, `scikit-learn`, `lightgbm`, `xgboost`, `matplotlib`, `pvlib`,
-`cdsapi`, `requests`, `python-dotenv`, `jupyter`.
-
-## Status
-
-Project scaffolding only. No data ingestion or modelling code yet.
+numpy, pandas, scikit-learn, lightgbm, xgboost, matplotlib, pvlib, cdsapi,
+requests, python-dotenv. See `requirements.txt` for pinned versions.
