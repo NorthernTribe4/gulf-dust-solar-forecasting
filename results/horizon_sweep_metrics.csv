@@ -1,0 +1,13 @@
+horizon_h,model,variant,allsky_RMSE,allsky_nRMSE,allsky_skill,highdust_RMSE
+1,LightGBM,baseline,44.5853,0.0921,0.2289,72.5372
+1,LightGBM,dust_aware,45.2280,0.0934,0.2178,74.0346
+1,XGBoost,baseline,44.5024,0.0919,0.2304,74.2976
+1,XGBoost,dust_aware,45.2778,0.0935,0.2170,77.4511
+3,LightGBM,baseline,63.5006,0.1311,0.6536,99.4229
+3,LightGBM,dust_aware,63.5524,0.1312,0.6533,100.0181
+3,XGBoost,baseline,65.2850,0.1348,0.6438,99.3651
+3,XGBoost,dust_aware,64.4659,0.1331,0.6483,98.8886
+6,LightGBM,baseline,81.0293,0.1672,0.8061,103.7179
+6,LightGBM,dust_aware,79.2520,0.1636,0.8104,109.3653
+6,XGBoost,baseline,84.2074,0.1738,0.7985,109.0715
+6,XGBoost,dust_aware,78.3892,0.1618,0.8124,111.1740

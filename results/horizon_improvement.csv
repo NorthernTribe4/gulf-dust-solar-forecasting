@@ -1,0 +1,7 @@
+horizon_h,model,allsky_improve_pct,highdust_improve_pct
+1,LightGBM,-1.4415,-2.0644
+1,XGBoost,-1.7423,-4.2445
+3,LightGBM,-0.0815,-0.5986
+3,XGBoost,1.2547,0.4795
+6,LightGBM,2.1934,-5.4450
+6,XGBoost,6.9094,-1.9277
