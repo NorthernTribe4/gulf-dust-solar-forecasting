@@ -1,0 +1,13 @@
+model,variant,slice,RMSE,MAE,MBE,nRMSE,R2,skill_vs_smart_persist
+SmartPersistence,-,all-sky,57.8236,28.8286,-1.5296,0.1194,0.9629,0.0000
+SmartPersistence,-,high-dust,81.2179,41.6619,-0.3731,0.1723,0.9275,0.0000
+PlainPersistence,-,all-sky,155.2147,135.8015,-4.0471,0.3205,0.7326,-1.6843
+PlainPersistence,-,high-dust,158.7715,134.3621,-8.7346,0.3368,0.7228,-0.9549
+LightGBM,baseline,all-sky,44.5853,20.7352,-1.7942,0.0921,0.9779,0.2289
+LightGBM,baseline,high-dust,72.5372,38.7208,7.9402,0.1539,0.9421,0.1069
+XGBoost,baseline,all-sky,44.5024,19.8971,-0.8067,0.0919,0.9780,0.2304
+XGBoost,baseline,high-dust,74.2976,39.0073,8.9284,0.1576,0.9393,0.0852
+LightGBM,dust_aware,all-sky,45.2280,20.3226,-0.6641,0.0934,0.9773,0.2178
+LightGBM,dust_aware,high-dust,74.0346,42.4048,-0.9881,0.1570,0.9397,0.0884
+XGBoost,dust_aware,all-sky,45.2778,20.4968,-0.9489,0.0935,0.9772,0.2170
+XGBoost,dust_aware,high-dust,77.4511,44.3327,-1.7547,0.1643,0.9340,0.0464
