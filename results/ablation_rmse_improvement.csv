@@ -1,0 +1,13 @@
+model,variant_vs_baseline,slice,RMSE_baseline,RMSE_variant,RMSE_improve_abs,RMSE_improve_pct
+LightGBM,dust_aware,all-sky,42.3030,44.1488,-1.8458,-4.3632
+LightGBM,dust_forecast,all-sky,42.3030,42.3592,-0.0561,-0.1327
+LightGBM,total_aod,all-sky,42.3030,43.3432,-1.0401,-2.4588
+LightGBM,dust_aware,high-dust,59.5814,61.0212,-1.4398,-2.4165
+LightGBM,dust_forecast,high-dust,59.5814,60.5087,-0.9273,-1.5564
+LightGBM,total_aod,high-dust,59.5814,58.8813,0.7001,1.1750
+XGBoost,dust_aware,all-sky,42.1864,41.5018,0.6846,1.6228
+XGBoost,dust_forecast,all-sky,42.1864,41.8007,0.3857,0.9144
+XGBoost,total_aod,all-sky,42.1864,41.0891,1.0973,2.6012
+XGBoost,dust_aware,high-dust,59.8495,59.9208,-0.0713,-0.1191
+XGBoost,dust_forecast,high-dust,59.8495,60.1494,-0.2998,-0.5010
+XGBoost,total_aod,high-dust,59.8495,60.3091,-0.4596,-0.7679

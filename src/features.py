@@ -141,25 +141,58 @@ def build_features(df: pd.DataFrame, horizon: int = HORIZON_STEPS) -> pd.DataFra
     # Plain persistence: GHI(t+horizon) ~= GHI(t).
     f["pred_plain_persist"] = d["ghi"].shift(0)
 
+    # --- Dust / aerosol columns (NOT part of the dust-blind baseline) ------- #
+    # These are appended AFTER all baseline columns so the baseline feature
+    # ordering is untouched. cams_dust_aod550 / cams_total_aod550 have 0% missing
+    # (data gate), so adding them drops no extra rows -> the retained row set is
+    # identical to the baseline, guaranteeing a controlled comparison.
+    #
+    # Time-t dust AOD (KNOWN at issue time t): current, 1 h ago, last-hour mean.
+    f["dust_aod_lag0"] = d["cams_dust_aod550"].shift(0)
+    f["dust_aod_lag4"] = d["cams_dust_aod550"].shift(horizon)
+    f["dust_aod_roll4_mean"] = d["cams_dust_aod550"].rolling(4).mean()
+    # Target-time dust AOD (t+1h): FUTURE info. Used only in the optional
+    # "with dust forecast" variant, and to DEFINE the high-dust eval slice.
+    f["dust_aod_target"] = d["cams_dust_aod550"].shift(-horizon)
+    # Time-t TOTAL AOD (KNOWN at t): for the optional dust-vs-total variant only.
+    f["total_aod_lag0"] = d["cams_total_aod550"].shift(0)
+    f["total_aod_lag4"] = d["cams_total_aod550"].shift(horizon)
+    f["total_aod_roll4_mean"] = d["cams_total_aod550"].rolling(4).mean()
+
     f = f.dropna()
     return f
 
 
-# Baseline (dust-blind) feature columns = everything in the design frame that is
-# not the target, a helper, or a reference forecast.
-_NON_FEATURE = {
-    "y", "daytime", "ghi_cs_target",
-    "pred_smart_persist", "pred_plain_persist",
-}
+# --------------------------------------------------------------------------- #
+# Explicit, ordered feature lists (order is fixed so runs are reproducible and
+# the dust-aware run differs from the baseline ONLY by appended dust columns).
+# --------------------------------------------------------------------------- #
+# Dust-blind baseline features (26). This exact list/order is what
+# src/train_baseline.py used, so the baseline reproduces bit-for-bit.
+BASE_FEATURES = [
+    "ghi_lag0", "kt_lag0", "ghi_lag1", "kt_lag1", "ghi_lag2", "kt_lag2",
+    "ghi_lag3", "kt_lag3", "ghi_lag4", "kt_lag4", "ghi_lag96", "kt_lag96",
+    "ghi_roll4_mean", "ghi_roll4_std", "kt_roll4_mean",
+    "air_temperature_lag0", "air_temperature_lag4",
+    "solar_zenith_target", "cos_zenith_target",
+    "hour_target", "doy_target", "hour_sin", "hour_cos", "doy_sin", "doy_cos",
+    "ghi_cs_target",
+]
+
+# Dust feature groups (all appended AFTER BASE_FEATURES).
+DUST_T_FEATURES = ["dust_aod_lag0", "dust_aod_lag4", "dust_aod_roll4_mean"]  # time-t (main)
+DUST_FORECAST_FEATURES = ["dust_aod_target"]                                 # t+1h (future)
+TOTAL_T_FEATURES = ["total_aod_lag0", "total_aod_lag4", "total_aod_roll4_mean"]  # time-t
+
+# Column used to define the high-dust evaluation slice (dust AOD at target time).
+DUST_SLICE_COL = "dust_aod_target"
 
 
 def base_feature_columns(feat: pd.DataFrame) -> list[str]:
-    """Dust-blind feature column list (order stable). ghi_cs_target is kept as a
-    predictor -- it is deterministic astronomy -- but its name is in the helper
-    set, so we re-add it explicitly here."""
-    cols = [c for c in feat.columns if c not in _NON_FEATURE]
-    cols.append("ghi_cs_target")  # deterministic, legitimate predictor
-    return cols
+    """Dust-blind baseline feature columns (fixed order)."""
+    missing = [c for c in BASE_FEATURES if c not in feat.columns]
+    assert not missing, f"missing baseline features: {missing}"
+    return list(BASE_FEATURES)
 
 
 # --------------------------------------------------------------------------- #
